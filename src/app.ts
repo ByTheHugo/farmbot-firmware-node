@@ -48,44 +48,43 @@ process.on("uncaughtException", exitHandler); // catches uncaught exceptions
 // ===============================================
 // SETUP APP WITH CONF
 // ===============================================
-fs.readFile(path.join(process.env.CONFIG_DIRECTORY, "farmbot.yaml"), "utf8", (err: Error, conf_string: string) => {
-  if (err) {
-    logger.error(err.message);
-    return exitHandler();
-  }
-  const conf: any = YAML.parse(conf_string);
+let conf_string: string;
+try {
+  conf_string = fs.readFileSync(path.join(process.env.CONFIG_DIRECTORY, "farmbot.yaml"), "utf8");
+} catch (e) {
+  logger.error(e.message);
+  exitHandler();
+}
+const conf: any = YAML.parse(conf_string);
+//
+// Connect to MQTT Broker
+mqtt_client = mqtt.connect(
+  conf.broker.host,
+  { "clientId": process.env.APP_NAME, "username": conf.broker.username, "password": conf.broker.password }
+);
+//
+// MQTT Listeners
+mqtt_client.on("connect", function () {
+  logger.info("[MQTT] Successfuly connected to MQTT broker %s!", conf.broker.host);
   //
-  // Connect to MQTT Broker
-  mqtt_client = mqtt.connect(
-    conf.broker.host,
-    { "clientId": process.env.APP_NAME, "username": conf.broker.username, "password": conf.broker.password }
-  );
-  //
-  // MQTT Listeners
-  mqtt_client.on("connect", function () {
-    logger.info("[MQTT] Successfuly connected to MQTT broker %s!", conf.broker.host);
-    //
-    // Register MQTT procedures
-    // mqttRouter.register(process.env.MQTT_CLIENT_NAME + "/say", sayController.say);
-  });
-  mqtt_client.on("reconnect", function () {
-    logger.info("[MQTT] Lost connection to the MQTT broker %s. Trying to reconnect...", conf.broker.host);
-  });
-  mqtt_client.on("error", function (e) {
-    logger.error(e.message);
-    mqtt_client.end(false, exitHandler);
-  });
-  mqtt_client.on("message", function (topic, message) {
-    logger.debug("[MQTT] " + topic + ": " + message.toString());
-    const handler = mqttRouter.route(topic);
-    if (handler)
-      handler.process(message);
-  });
-  //
-  logger.info("Configuration successfuly loaded");
+  // Register MQTT procedures
+  // mqttRouter.register(process.env.MQTT_CLIENT_NAME + "/in/move", MoveProcedure.do);
+});
+mqtt_client.on("reconnect", function () {
+  logger.info("[MQTT] Lost connection to the MQTT broker %s. Trying to reconnect...", conf.broker.host);
+});
+mqtt_client.on("error", function (e) {
+  logger.error(e.message);
+  mqtt_client.end(false, undefined, exitHandler);
+});
+mqtt_client.on("message", function (topic, message) {
+  logger.debug("[MQTT] " + topic + ": " + message.toString());
+  const handler = mqttRouter.route(topic);
+  if (handler)
+    handler.process(message);
 });
 //
 // Exported variables
-export { logger, mqtt_client };
+export { logger, mqtt_client, conf };
 //
 logger.info("Farmbot firmware started");
