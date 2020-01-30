@@ -1,3 +1,4 @@
+import { ProcedureCallInterface } from "ProcedureCallInterface";
 import * as dotenv from "dotenv";
 import * as winston from "winston";
 import * as path from "path";
@@ -5,8 +6,7 @@ import * as fs from "fs";
 import * as YAML from "yaml";
 import * as mqtt from "mqtt";
 import * as mqttRouter from "./classes/MqttRouter";
-//
-let mqtt_client: mqtt.MqttClient = undefined;
+import { Queue } from "./classes/Queue";
 //
 // ===============================================
 // SETUP APP WITH ENV
@@ -56,9 +56,10 @@ try {
   exitHandler();
 }
 const conf: any = YAML.parse(conf_string);
+const queue: Queue = new Queue();
 //
 // Connect to MQTT Broker
-mqtt_client = mqtt.connect(
+const mqtt_client: mqtt.MqttClient = mqtt.connect(
   conf.broker.host,
   { "clientId": process.env.APP_NAME, "username": conf.broker.username, "password": conf.broker.password }
 );
@@ -77,14 +78,20 @@ mqtt_client.on("error", function (e) {
   logger.error(e.message);
   mqtt_client.end(false, undefined, exitHandler);
 });
-mqtt_client.on("message", function (topic, message) {
+mqtt_client.on("message", function (topic, message: ProcedureCallInterface) {
   logger.debug("[MQTT] " + topic + ": " + message.toString());
-  const handler = mqttRouter.route(topic);
-  if (handler)
-    handler.process(message);
+
+  //const handler = mqttRouter.route(topic);
+  // if (handler)
+  //  handler.process(message);
+
+  queue.push({
+    id: Date.now(),
+    call: message
+  });
 });
 //
 // Exported variables
-export { logger, mqtt_client, conf };
+export { logger, mqtt_client, conf, queue };
 //
 logger.info("Farmbot firmware started");

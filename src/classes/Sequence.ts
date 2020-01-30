@@ -1,4 +1,5 @@
 "use strict";
+import { conf } from "../app";
 import { MissingParameterError } from "./../errors/MissingParameterError";
 import { NotFoundError } from "./../errors/NotFoundError";
 import * as fs from "fs";
@@ -31,16 +32,25 @@ export class Sequence {
     });
   }
 
-  public fill(params: Array<string>): Sequence {
-    let p: number = 0;
+  public fill(args: Object): Sequence {
     for (let i = 0; i < this.gcode_ary.length; i++) {
-      const param_required: number = this.gcode_ary[i].match(/\?/g).length;
-      if (param_required > params.length) {
-        throw new MissingParameterError();
-      }
-      for (let y = 0; y < param_required; y++) {
-        this.gcode_ary[i].replace(/\?/, params[p]);
-        p += 1;
+
+      const config_matches = this.gcode_ary[i].match(/\[(\w+\.)+\w\]/gi);
+      for (let y = 0; y < config_matches.length; y++) {
+        const local_key: Array<string> = config_matches[y].slice(1, config_matches[y].length - 1).split(".");
+        let local_value: any;
+
+        if (local_key[0] === "conf") {
+          local_value = conf;
+        } else if (local_key[0] === "args") {
+          local_value = args;
+        }
+        for (const key in local_key) {
+          if (!local_value[key]) throw new MissingParameterError();
+          local_value = local_value[key];
+        }
+
+        this.gcode_ary[i] = this.gcode_ary[i].replace(config_matches[y], local_value);
       }
     }
     return this;

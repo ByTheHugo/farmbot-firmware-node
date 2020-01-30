@@ -26,6 +26,7 @@
     "@types/cron": "^1.7.1",
     "@types/dotenv": "^6.1.1",
     "@types/mqtt": "^2.5.0",
+    "@types/sqlite3": "^3.1.6",
     "@types/winston": "^2.3.9",
     "@types/yaml": "^1.2.0",
     "cron": "^1.7.2",
@@ -33,6 +34,7 @@
     "mqtt": "^3.0.0",
     "multer": "^1.4.2",
     "reflect-metadata": "^0.1.13",
+    "sqlite3": "^4.1.1",
     "winston": "^2.4.3",
     "yaml": "^1.7.2"
   },

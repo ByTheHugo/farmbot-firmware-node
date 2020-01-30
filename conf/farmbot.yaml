@@ -8,6 +8,15 @@ broker:
 farmbot:
   length: 200
   width: 80
+  tools:
+    seeds:
+      x: 0
+      y: 0
+      z: 0
+    picker:
+      x: 0
+      y: 0
+      z: 0
 
 # Users configuration
 users:
