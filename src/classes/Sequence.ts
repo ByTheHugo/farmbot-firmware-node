@@ -1,5 +1,5 @@
 "use strict";
-import { conf } from "../app";
+import { conf, logger } from "../app";
 import { MissingParameterError } from "./../errors/MissingParameterError";
 import { NotFoundError } from "./../errors/NotFoundError";
 import * as fs from "fs";
@@ -19,14 +19,15 @@ export class Sequence {
     return new Promise((resolve, reject) => {
       const fpath: string = path.join(process.env.SEQUENCE_DIRECTORY, name + ".nc");
       if (!fs.existsSync(fpath)) {
+        logger.debug("Sequence.ts - NotFoundError");
         return reject(new NotFoundError());
       }
 
-      fs.readFile(fpath, "utf8", (err: Error, data: string) => {
+      fs.readFile(fpath, (err: Error, data: Buffer) => {
         if (err) {
           return reject(err);
         } else {
-          return resolve(new Sequence(name, data.split(endOfLine)));
+          return resolve(new Sequence(name, data.toString().trim().split(endOfLine)));
         }
       });
     });
@@ -35,7 +36,9 @@ export class Sequence {
   public fill(args: Object): Sequence {
     for (let i = 0; i < this.gcode_ary.length; i++) {
 
-      const config_matches = this.gcode_ary[i].match(/\[(\w+\.)+\w\]/gi);
+      const config_matches = this.gcode_ary[i].match(/\[(\w+\.)+\w+\]/gi);
+      if (!config_matches) return this;
+
       for (let y = 0; y < config_matches.length; y++) {
         const local_key: Array<string> = config_matches[y].slice(1, config_matches[y].length - 1).split(".");
         let local_value: any;
@@ -45,12 +48,17 @@ export class Sequence {
         } else if (local_key[0] === "args") {
           local_value = args;
         }
-        for (const key in local_key) {
-          if (!local_value[key]) throw new MissingParameterError();
-          local_value = local_value[key];
-        }
+        local_key.shift();
 
-        this.gcode_ary[i] = this.gcode_ary[i].replace(config_matches[y], local_value);
+        local_key.forEach(key => {
+          if (!local_value[key]) {
+            logger.debug("Sequence.ts - MissingParameterError");
+            throw new MissingParameterError();
+          }
+          local_value = local_value[key];
+        });
+
+        this.gcode_ary[i] = this.gcode_ary[i].replace(config_matches[y], local_value).trim();
       }
     }
     return this;
@@ -58,7 +66,10 @@ export class Sequence {
 
   public async play(): Promise<boolean> {
     return new Promise((resolve, reject) => {
-
+      this.gcode_ary.forEach(elem => {
+        logger.debug("Playing " + elem);
+        return resolve(true);
+      });
     });
   }
 }

@@ -60,7 +60,7 @@ const queue: Queue = new Queue();
 //
 // Connect to MQTT Broker
 const mqtt_client: mqtt.MqttClient = mqtt.connect(
-  conf.broker.host,
+  "mqtt://" + conf.broker.host,
   { "clientId": process.env.APP_NAME, "username": conf.broker.username, "password": conf.broker.password }
 );
 //
@@ -69,7 +69,7 @@ mqtt_client.on("connect", function () {
   logger.info("[MQTT] Successfuly connected to MQTT broker %s!", conf.broker.host);
   //
   // Register MQTT procedures
-  // mqttRouter.register(process.env.MQTT_CLIENT_NAME + "/in/move", MoveProcedure.do);
+  mqtt_client.subscribe(process.env.MQTT_CLIENT_NAME + "/in");
 });
 mqtt_client.on("reconnect", function () {
   logger.info("[MQTT] Lost connection to the MQTT broker %s. Trying to reconnect...", conf.broker.host);
@@ -81,17 +81,21 @@ mqtt_client.on("error", function (e) {
 mqtt_client.on("message", function (topic, message: ProcedureCallInterface) {
   logger.debug("[MQTT] " + topic + ": " + message.toString());
 
-  //const handler = mqttRouter.route(topic);
-  // if (handler)
-  //  handler.process(message);
-
-  queue.push({
-    id: Date.now(),
-    call: message
-  });
+  try {
+    queue.push({
+      id: Date.now(),
+      call: JSON.parse(message.toString())
+    });
+  } catch (e) {
+    logger.error(e);
+  }
 });
 //
 // Exported variables
 export { logger, mqtt_client, conf, queue };
 //
 logger.info("Farmbot firmware started");
+setInterval(function () {
+  // logger.debug("Farmbot thinking...");
+  queue.process();
+}, 100);

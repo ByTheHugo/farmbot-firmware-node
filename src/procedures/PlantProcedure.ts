@@ -2,9 +2,9 @@
 
 import { conf } from "../app";
 import { Procedure } from "../classes/Procedure";
-import { AuthenticationMethod } from "AuthenticationMethodEnum";
+import { AuthenticationMethod } from "../types/AuthenticationMethodEnum";
 import { Sequence } from "../classes/Sequence";
-import { ConfigAreaInterface } from "ConfigInterface";
+import { ConfigAreaInterface } from "../types/ConfigInterface";
 import { MissingParameterError } from "./../errors/MissingParameterError";
 import { NotFoundError } from "./../errors/NotFoundError";
 
@@ -27,7 +27,7 @@ export class PlantProcedure extends Procedure {
         return resolve();
       } else if (gcode_ary[0] === "R03") {
         // Command finished with error
-        return reject();
+        return reject(gcode_ary[0]);
       }
     });
   }
@@ -44,12 +44,14 @@ export class PlantProcedure extends Procedure {
       }
 
       // Run sequences
-      this.sequences_to_run.push((await Sequence.get("takePlanter")).fill({}));
-      this.sequences_to_run.push((await Sequence.get("takeSeed")).fill({}));
+      // this.sequences_to_run.push((await Sequence.get("takePlanter")).fill({}));
+      // this.sequences_to_run.push((await Sequence.get("takeSeed")).fill({}));
       this.sequences_to_run.push((await Sequence.get("plant")).fill({
         x: area.origin.x + this.call.args["x"],
         y: area.origin.y + this.call.args["y"]
       }));
+
+      return resolve();
     });
   }
 }

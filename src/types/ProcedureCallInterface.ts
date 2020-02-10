@@ -7,7 +7,7 @@ export interface ProcedureCallInterface {
 
 export interface ProcedureAuthenticationInterface {
   readonly username: string;
-  readonly password: string;
+  readonly password?: string;
 }
 
 export interface ProcedureArgumentsInterface {
