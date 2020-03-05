@@ -1,3 +1,5 @@
+![Cover farmbot-firmware-node](https://raw.githubusercontent.com/ByTheHugo/farmbot-firmware-node/master/cover.png)
+
 # farmbot-firmware-node
 
 **Authors:** Hugo CHUPIN, Ikrame ABLA
